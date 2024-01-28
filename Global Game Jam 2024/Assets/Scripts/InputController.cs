@@ -8,11 +8,15 @@ public class InputController : MonoBehaviour
     //[Header("Inputs")]
     public Vector2 moveInputs { get; private set; }
     public Vector2 lookInputs { get; private set; }
+    public bool interactInputs { get; private set; }
+    public bool tipInputs { get; private set; }
 
     public bool MoveIsPressed = false;
     public bool InvertMouseY { get; private set; }
 
     PlayerControls input;
+
+    private bool isPaused = false;
 
     private void OnEnable()
     {
@@ -37,6 +41,12 @@ public class InputController : MonoBehaviour
         input.Gameplay.Disable();
     }
 
+    private void Update()
+    {
+        interactInputs = input.Gameplay.Interact.WasPerformedThisFrame();
+        tipInputs = input.Gameplay.Tip.WasPerformedThisFrame();
+    }
+
     private void SetMove(InputAction.CallbackContext ctx)
     {
         moveInputs = ctx.ReadValue<Vector2>();
@@ -46,5 +56,27 @@ public class InputController : MonoBehaviour
     private void SetLook(InputAction.CallbackContext ctx)
     {
         lookInputs = ctx.ReadValue<Vector2>();
+    }
+
+    public void PauseControls()
+    {
+        if(!isPaused)
+        {
+            input.Gameplay.Move.performed -= SetMove;
+            input.Gameplay.Move.canceled -= SetMove;
+
+            input.Gameplay.Look.performed -= SetLook;
+            input.Gameplay.Look.canceled -= SetLook;
+        }
+        else
+        {
+            input.Gameplay.Move.performed += SetMove;
+            input.Gameplay.Move.canceled += SetMove;
+
+            input.Gameplay.Look.performed += SetLook;
+            input.Gameplay.Look.canceled += SetLook;
+        }
+
+        isPaused = !isPaused;
     }
 }

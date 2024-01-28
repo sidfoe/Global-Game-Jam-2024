@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using UnityEngine.UI;
 
 public class PlayerBehaviour : MonoBehaviour
 {
@@ -19,6 +19,8 @@ public class PlayerBehaviour : MonoBehaviour
 
     [SerializeField] InputController input;
 
+    public List<Image> itemPickedUp = new List<Image>();
+
     private Rigidbody rb; // to walk, move body, not this
 
     Vector3 playerMoveInput = Vector3.zero;
@@ -26,6 +28,14 @@ public class PlayerBehaviour : MonoBehaviour
     Vector3 prevPlayerLookInput = Vector3.zero;
 
     private float cameraPitch = 0.0f;
+
+
+    //public List<ObjectBehaviour> collectedObjects = new List<ObjectBehaviour>(5) { null, null, null, null, null };
+    private ObjectBehaviour[] collectedObjects = new ObjectBehaviour[5];
+    private ObjectBehaviour objectPickupable = null;
+
+    public Color pickedUpColor;
+
 
     private void Awake()
     {
@@ -42,7 +52,26 @@ public class PlayerBehaviour : MonoBehaviour
         Move();
 
         rb.AddRelativeForce(playerMoveInput, ForceMode.Force);
-    } 
+    }
+
+    private void Update()
+    {
+        if (input.interactInputs && objectPickupable)
+        {
+            if (collectedObjects[objectPickupable.type] == null)
+            {
+                collectedObjects[objectPickupable.type] = objectPickupable;
+                itemPickedUp[objectPickupable.type].color = pickedUpColor;
+                objectPickupable.gameObject.SetActive(false);
+            }
+            else
+            {
+                collectedObjects[objectPickupable.type].gameObject.SetActive(true);
+                collectedObjects[objectPickupable.type] = objectPickupable;
+                objectPickupable.gameObject.SetActive(false);
+            }
+        }
+    }
 
     private Vector3 GetLookInput()
     {
@@ -60,7 +89,7 @@ public class PlayerBehaviour : MonoBehaviour
     {
         Vector3 rotationValues = cameraFollow.rotation.eulerAngles;
         cameraPitch += playerLookInput.y * pitchSpeed;
-        cameraPitch = Mathf.Clamp(cameraPitch, -89.9f, 89.9f);
+        cameraPitch = Mathf.Clamp(cameraPitch, 44.9f, 44.9f);
 
         cameraFollow.rotation = Quaternion.Euler(cameraPitch, rotationValues.y, rotationValues.z);
     }
@@ -73,5 +102,52 @@ public class PlayerBehaviour : MonoBehaviour
     private void Move()
     {
         playerMoveInput = (new Vector3(playerMoveInput.x * speed * rb.mass, playerMoveInput.y, playerMoveInput.z * speed * rb.mass));
+    }
+
+    private void OnTriggerStay(Collider col)
+    {
+        if(col.CompareTag("object"))
+        {
+            objectPickupable = col.GetComponent<ObjectBehaviour>();
+            col.GetComponent<Highlight>()?.ToggleHighlight(true);
+        }
+    }
+
+    private void OnTriggerExit(Collider col)
+    {
+        if (col.CompareTag("object"))
+        {
+            col.GetComponent<Highlight>()?.ToggleHighlight(false);
+        }
+    }
+
+    public int CalculateScore(int selectGen, int selectAge)
+    {
+        int score = 0;
+
+        foreach(ObjectBehaviour ob in collectedObjects)
+        {
+            if(ob == null)
+            {
+                score -= 10;
+                continue;
+            }
+
+            if(ob.age == selectAge)
+            {
+                score += 10;
+            }
+
+            if(ob.gender == selectGen)
+            {
+                score += 10;
+            }
+
+            //didnt get anything correct no points
+            //max points 100. 20 per item
+
+        }
+
+        return score; 
     }
 }
